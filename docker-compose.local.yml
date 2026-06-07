@@ -26,8 +26,6 @@ services:
       SEED_USERNAME: runner1
       SEED_EMAIL: runner1@test.com
       SEED_PASSWORD: Securepass1!
-    command: >
-      sh -c "node scripts/wait-for-tcp.js postgres 5432 && npx prisma migrate deploy --schema=./prisma/schema.prisma && node scripts/seed.js && node server.js"
 
   activity-ingestion-api:
     environment:

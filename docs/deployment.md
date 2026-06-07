@@ -54,6 +54,25 @@ If the stack fails after a **previous partial deploy**, reset volumes:
 
 First PostGIS boot can take **1–3 minutes** on slow VPS hosts — wait before checking `fittrack_auth` logs.
 
+### 502 Bad Gateway on `/api/v1/auth/login`
+
+Nginx is up but **`fittrack_auth` is not listening** (container crashed or still starting).
+
+1. Portainer → **Containers** → `fittrack_auth` → **Logs**
+2. Look for the last successful line or error:
+
+| Log | Meaning |
+|-----|---------|
+| `=== [auth] Starting server ===` then `Server listening at http://0.0.0.0:5001` | Auth is healthy — check nginx rebuild |
+| `Timed out waiting for postgres` | Postgres not ready — check `fittrack_postgres` |
+| `migrate deploy` / `P1000` / `password authentication failed` | `DB_PASSWORD` mismatch vs existing volume |
+| `type "geography" does not exist` | PostGIS not enabled — use `postgis/postgis:16-3.4` image |
+| `Seed failed` | DB connection or schema issue |
+
+3. **Rebuild** `auth-user-service` after code changes.
+4. Keep `DB_PASSWORD` consistent, or remove volumes and redeploy fresh.
+5. Use a simple `DB_PASSWORD` (letters/numbers only) to avoid `DATABASE_URL` parsing issues.
+
 The auth service runs `prisma migrate deploy` on startup before listening.
 
 ### Dev Overrides
