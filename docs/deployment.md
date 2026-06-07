@@ -8,7 +8,7 @@ The full stack is defined in `docker-compose.yml`:
 |---------|--------------|------|
 | postgres | `postgis/postgis:16-3.4` | host **5433** → container 5432 |
 | redis | `redis:7-alpine` | host **6380** → container 6379 |
-| nginx | `nginx:alpine` | host **8080** (HTTP), **8443** (HTTPS) |
+| nginx | Build from `nginx/Dockerfile` | host **8080** (HTTP), **8443** (HTTPS) |
 | auth-user-service | Build from Dockerfile | internal 5001 |
 | activity-ingestion-api | Build from Dockerfile | internal 5002 |
 | spatial-processing-worker | Build from Dockerfile | — |
@@ -28,6 +28,8 @@ copy .env.docker.example .env
 ```
 
 ### Portainer
+
+Deploy from the **full Git repository** (not paste-only compose). Portainer must build service images and include the `nginx/` folder — bind-mounting `nginx.conf` fails when the file is missing on the server.
 
 Stacks do **not** need a `.env` file on disk. In Portainer → **Stacks** → your stack → **Environment variables**, set at minimum:
 
