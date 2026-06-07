@@ -17,11 +17,28 @@ The full stack is defined in `docker-compose.yml`:
 ### Quick Start
 
 ```powershell
-copy .env.example .env
-# Edit .env — set DB_PASSWORD, JWT_SECRET
-
 docker compose up -d
 ```
+
+Environment variables are defined in `docker-compose.yml` with defaults. Override secrets before production:
+
+```powershell
+# Optional local overrides (not required for deploy)
+copy .env.docker.example .env
+```
+
+### Portainer
+
+Stacks do **not** need a `.env` file on disk. In Portainer → **Stacks** → your stack → **Environment variables**, set at minimum:
+
+| Variable | Example |
+|----------|---------|
+| `DB_PASSWORD` | strong random password |
+| `JWT_SECRET` | 256-bit random string |
+| `JWT_REFRESH_SECRET` | different 256-bit string |
+| `SEED_ON_STARTUP` | `true` (optional, for a default login) |
+
+Redeploy the stack after updating `docker-compose.yml` (no `env_file: .env` dependency).
 
 The auth service runs `prisma migrate deploy` on startup before listening.
 
