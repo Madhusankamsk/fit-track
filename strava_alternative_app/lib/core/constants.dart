@@ -7,9 +7,9 @@ class AppConstants {
         defaultTargetPlatform == TargetPlatform.windows ||
         defaultTargetPlatform == TargetPlatform.linux ||
         defaultTargetPlatform == TargetPlatform.macOS) {
-      return 'http://localhost:8081';
+      return 'http://localhost:8080';
     }
-    return 'http://10.0.2.2:8081';
+    return 'http://10.0.2.2:8080';
   }
 
   static const String activityQueue = 'activity_queue';

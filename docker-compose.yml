@@ -1,3 +1,22 @@
+x-app-env: &app-env
+  DATABASE_URL: postgresql://fittrack:${DB_PASSWORD:-strongpassword}@postgres:5432/fittrack_db?schema=public
+  REDIS_URL: redis://redis:6379
+  JWT_SECRET: ${JWT_SECRET:-replace_with_256bit_random_secret_never_expose}
+  JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-replace_with_different_256bit_secret}
+  JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+  JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
+  AUTH_SERVICE_PORT: ${AUTH_SERVICE_PORT:-5001}
+  INGESTION_API_PORT: ${INGESTION_API_PORT:-5002}
+  ANALYTICS_SERVICE_PORT: ${ANALYTICS_SERVICE_PORT:-5003}
+  NODE_ENV: ${NODE_ENV:-production}
+  BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+  MAX_WAYPOINTS_PER_ACTIVITY: ${MAX_WAYPOINTS_PER_ACTIVITY:-100000}
+  ACTIVITY_QUEUE_NAME: ${ACTIVITY_QUEUE_NAME:-activity_queue}
+  SEED_ON_STARTUP: ${SEED_ON_STARTUP:-false}
+  SEED_USERNAME: ${SEED_USERNAME:-runner1}
+  SEED_EMAIL: ${SEED_EMAIL:-runner1@test.com}
+  SEED_PASSWORD: ${SEED_PASSWORD:-Securepass1!}
+
 services:
   postgres:
     image: postgis/postgis:16-3.4
@@ -53,12 +72,13 @@ services:
       dockerfile: auth-user-service/Dockerfile
     container_name: fittrack_auth
     restart: unless-stopped
-    env_file: .env
+    environment:
+      <<: *app-env
     depends_on:
       postgres:
         condition: service_healthy
     command: >
-      sh -c "npx prisma migrate deploy --schema=./prisma/schema.prisma && node server.js"
+      sh -c "npx prisma migrate deploy --schema=./prisma/schema.prisma && node scripts/seed.js && node server.js"
 
   activity-ingestion-api:
     build:
@@ -66,7 +86,8 @@ services:
       dockerfile: activity-ingestion-api/Dockerfile
     container_name: fittrack_ingestion
     restart: unless-stopped
-    env_file: .env
+    environment:
+      <<: *app-env
     depends_on:
       postgres:
         condition: service_healthy
@@ -79,7 +100,8 @@ services:
       dockerfile: spatial-processing-worker/Dockerfile
     container_name: fittrack_worker
     restart: unless-stopped
-    env_file: .env
+    environment:
+      <<: *app-env
     depends_on:
       postgres:
         condition: service_healthy
@@ -92,7 +114,8 @@ services:
       dockerfile: analytics-service/Dockerfile
     container_name: fittrack_analytics
     restart: unless-stopped
-    env_file: .env
+    environment:
+      <<: *app-env
     depends_on:
       postgres:
         condition: service_healthy

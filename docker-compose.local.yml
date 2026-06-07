@@ -25,8 +25,12 @@ services:
   auth-user-service:
     environment:
       <<: *app-env
+      SEED_ON_STARTUP: "true"
+      SEED_USERNAME: runner1
+      SEED_EMAIL: runner1@test.com
+      SEED_PASSWORD: Securepass1!
     command: >
-      sh -c "npx prisma migrate deploy --schema=./prisma/schema.prisma && node server.js"
+      sh -c "npx prisma migrate deploy --schema=./prisma/schema.prisma && node scripts/seed.js && node server.js"
 
   activity-ingestion-api:
     environment:
