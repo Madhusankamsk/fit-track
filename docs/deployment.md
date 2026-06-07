@@ -40,15 +40,17 @@ Stacks do **not** need a `.env` file on disk. In Portainer → **Stacks** → yo
 
 Redeploy the stack after updating `docker-compose.yml` (no `env_file: .env` dependency).
 
-### Postgres unhealthy on first deploy
+### Postgres / dependency startup
 
-PostGIS can take **1–2 minutes** on first boot. The compose file allows a 120s `start_period` before health checks count as failures.
+Services no longer block on a Postgres **health check** (often flaky on Portainer). The auth service waits for Postgres TCP port `5432`, then runs migrations. Other services use `restart: unless-stopped` and connect once Postgres/Redis are up.
 
-If Postgres stays unhealthy after a **failed prior deploy**, the data volume may be corrupted or initialized with a different password:
+If the stack fails after a **previous partial deploy**, reset volumes:
 
-1. In Portainer, **stop and remove** the stack (check **Remove volumes** if this is a fresh trial).
-2. Redeploy with a consistent `DB_PASSWORD` in stack environment variables.
-3. Check container logs: **Containers → fittrack_postgres → Logs** — look for init errors or password/auth failures.
+1. Portainer → **Stacks** → stop stack → enable **Remove volumes** → remove.
+2. Redeploy with a consistent `DB_PASSWORD` (do not change it after the first successful boot).
+3. Check **fittrack_postgres** logs for `FATAL`, `PANIC`, or disk-space errors.
+
+First PostGIS boot can take **1–3 minutes** on slow VPS hosts — wait before checking `fittrack_auth` logs.
 
 The auth service runs `prisma migrate deploy` on startup before listening.
 
