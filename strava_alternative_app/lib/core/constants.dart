@@ -1,5 +1,5 @@
 class AppConstants {
-  /// Deployed Docker API (nginx gateway). Override for local dev:
+  /// Deployed Docker API (nginx on Portainer). Local dev override:
   /// `flutter run --dart-define=API_BASE_URL=http://localhost:8080`
   static const String _deployedApiUrl = 'http://100.115.79.13:8080';
 

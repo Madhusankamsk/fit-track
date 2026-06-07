@@ -12,7 +12,7 @@ x-app-env: &app-env
   BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
   MAX_WAYPOINTS_PER_ACTIVITY: ${MAX_WAYPOINTS_PER_ACTIVITY:-100000}
   ACTIVITY_QUEUE_NAME: ${ACTIVITY_QUEUE_NAME:-activity_queue}
-  SEED_ON_STARTUP: ${SEED_ON_STARTUP:-false}
+  SEED_ON_STARTUP: ${SEED_ON_STARTUP:-true}
   SEED_USERNAME: ${SEED_USERNAME:-runner1}
   SEED_EMAIL: ${SEED_EMAIL:-runner1@test.com}
   SEED_PASSWORD: ${SEED_PASSWORD:-Securepass1!}
@@ -56,7 +56,6 @@ services:
     restart: unless-stopped
     ports:
       - "${NGINX_HTTP_PORT:-8080}:80"
-      - "${NGINX_HTTPS_PORT:-8443}:443"
     depends_on:
       - auth-user-service
       - activity-ingestion-api

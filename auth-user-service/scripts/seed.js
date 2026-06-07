@@ -12,6 +12,8 @@ const SEED = {
   password: process.env.SEED_PASSWORD || 'Securepass1!',
 };
 
+console.log(`Running seed for ${SEED.email} (SEED_ON_STARTUP=${process.env.SEED_ON_STARTUP ?? 'true'})`);
+
 const prisma = new PrismaClient();
 
 try {
@@ -31,6 +33,9 @@ try {
   console.log(`  Email:    ${SEED.email}`);
   console.log(`  Password: ${SEED.password}`);
   console.log(`  User ID:  ${user.id}`);
+} catch (err) {
+  console.error('Seed failed:', err);
+  process.exit(1);
 } finally {
   await prisma.$disconnect();
 }
