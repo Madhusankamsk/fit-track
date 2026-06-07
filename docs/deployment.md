@@ -6,9 +6,9 @@ The full stack is defined in `docker-compose.yml`:
 
 | Service | Image / Build | Port |
 |---------|--------------|------|
-| postgres | `postgis/postgis:16-3.4` | 5432 |
-| redis | `redis:7-alpine` | 6379 |
-| nginx | `nginx:alpine` | 80, 443 |
+| postgres | `postgis/postgis:16-3.4` | host **5433** → container 5432 |
+| redis | `redis:7-alpine` | host **6380** → container 6379 |
+| nginx | `nginx:alpine` | host **8080** (HTTP), **8443** (HTTPS) |
 | auth-user-service | Build from Dockerfile | internal 5001 |
 | activity-ingestion-api | Build from Dockerfile | internal 5002 |
 | spatial-processing-worker | Build from Dockerfile | — |

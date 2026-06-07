@@ -16,6 +16,10 @@ x-app-env: &app-env
   SEED_USERNAME: ${SEED_USERNAME:-runner1}
   SEED_EMAIL: ${SEED_EMAIL:-runner1@test.com}
   SEED_PASSWORD: ${SEED_PASSWORD:-Securepass1!}
+  POSTGRES_HOST_PORT: ${POSTGRES_HOST_PORT:-5433}
+  REDIS_HOST_PORT: ${REDIS_HOST_PORT:-6380}
+  NGINX_HTTP_PORT: ${NGINX_HTTP_PORT:-8080}
+  NGINX_HTTPS_PORT: ${NGINX_HTTPS_PORT:-8443}
 
 services:
   postgres:
@@ -29,7 +33,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U fittrack -d fittrack_db"]
       interval: 10s
@@ -44,7 +48,7 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "6379:6379"
+      - "${REDIS_HOST_PORT:-6380}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -56,8 +60,8 @@ services:
     container_name: fittrack_nginx
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "${NGINX_HTTP_PORT:-8080}:80"
+      - "${NGINX_HTTPS_PORT:-8443}:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
