@@ -40,6 +40,16 @@ Stacks do **not** need a `.env` file on disk. In Portainer → **Stacks** → yo
 
 Redeploy the stack after updating `docker-compose.yml` (no `env_file: .env` dependency).
 
+### Postgres unhealthy on first deploy
+
+PostGIS can take **1–2 minutes** on first boot. The compose file allows a 120s `start_period` before health checks count as failures.
+
+If Postgres stays unhealthy after a **failed prior deploy**, the data volume may be corrupted or initialized with a different password:
+
+1. In Portainer, **stop and remove** the stack (check **Remove volumes** if this is a fresh trial).
+2. Redeploy with a consistent `DB_PASSWORD` in stack environment variables.
+3. Check container logs: **Containers → fittrack_postgres → Logs** — look for init errors or password/auth failures.
+
 The auth service runs `prisma migrate deploy` on startup before listening.
 
 ### Dev Overrides
