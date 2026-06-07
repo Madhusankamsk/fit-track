@@ -1,0 +1,30 @@
+---
+description: FitTrack Pro core constraints from MASTER_BLUEPRINT.md
+alwaysApply: true
+---
+
+# FitTrack Pro Blueprint
+
+Reference [MASTER_BLUEPRINT.md](../../MASTER_BLUEPRINT.md) as the single source of truth.
+
+## Stack
+
+- Node.js 20, Fastify 4, Prisma 5, PostgreSQL 16 + PostGIS, Redis 7
+- Flutter 3, Riverpod, Dio, Hive, geolocator, flutter_map
+
+## PostGIS Rules
+
+- Geography columns are `Unsupported()` in Prisma — never use ORM for them
+- Writes: `$executeRaw` with `ST_GeogFromText()`
+- Reads: `$queryRaw` with `ST_AsGeoJSON()::json`
+
+## API Paths (via gateway :8080)
+
+- Auth: `/api/v1/auth/*`, `/api/v1/users/*` → port 5001
+- Ingest/feed: `/api/v1/ingest`, `/api/v1/feed`, GET/DELETE `/api/v1/activities/*` → port 5002
+- Analytics: `/api/v1/stats/*`, `/api/v1/segments/*`, POST kudos/comments → port 5003
+
+## Security
+
+- bcrypt 12 rounds, Zod validation on all inputs, parameterized raw SQL only
+- Ingest returns 202 immediately; worker processes via Redis BLPOP

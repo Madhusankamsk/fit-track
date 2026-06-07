@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'fittrack-auth'
+    static_configs:
+      - targets: ['auth-user-service:5001']
+
+  - job_name: 'fittrack-ingestion'
+    static_configs:
+      - targets: ['activity-ingestion-api:5002']
+
+  - job_name: 'fittrack-analytics'
+    static_configs:
+      - targets: ['analytics-service:5003']

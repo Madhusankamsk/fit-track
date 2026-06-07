@@ -1,0 +1,25 @@
+version: '3.9'
+
+services:
+  auth-user-service:
+    volumes:
+      - ./auth-user-service:/app
+      - ./prisma:/app/prisma
+    command: node --watch server.js
+
+  activity-ingestion-api:
+    volumes:
+      - ./activity-ingestion-api:/app
+      - ./prisma:/app/prisma
+    command: node --watch server.js
+
+  analytics-service:
+    volumes:
+      - ./analytics-service:/app
+      - ./prisma:/app/prisma
+    command: node --watch server.js
+
+  spatial-processing-worker:
+    volumes:
+      - ./spatial-processing-worker:/app
+      - ./prisma:/app/prisma

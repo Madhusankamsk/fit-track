@@ -1,0 +1,13 @@
+{
+  "name": "spatial-processing-worker",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node worker.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "dotenv": "^16.4.5",
+    "ioredis": "^5.4.1"
+  }
+}

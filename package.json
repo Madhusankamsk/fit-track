@@ -1,0 +1,25 @@
+{
+  "name": "fittrack-pro",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FitTrack Pro — production-grade Strava alternative",
+  "scripts": {
+    "dev:auth": "cd auth-user-service && npm run dev",
+    "dev:ingest": "cd activity-ingestion-api && npm run dev",
+    "dev:analytics": "cd analytics-service && npm run dev",
+    "dev:worker": "cd spatial-processing-worker && npm start",
+    "dev:gateway": "cd dev-gateway && node server.js",
+    "start:all": "powershell -ExecutionPolicy Bypass -File scripts/start-all.ps1",
+    "prisma:generate": "npx prisma generate --schema=prisma/schema.prisma",
+    "prisma:migrate": "npx prisma migrate dev --schema=prisma/schema.prisma",
+    "seed": "node scripts/seed-account.js",
+    "db:bootstrap": "powershell -ExecutionPolicy Bypass -Command \"$env:PGPASSWORD=(Get-Content .env | Where-Object { $_ -match '^DB_PASSWORD=' } | ForEach-Object { $_ -replace '^DB_PASSWORD=','' }); if (-not $env:PGPASSWORD) { $env:PGPASSWORD='123' }; & 'C:\\Program Files\\PostgreSQL\\18\\bin\\psql.exe' -U postgres -h localhost -d fittrack_db -v ON_ERROR_STOP=1 -f scripts/bootstrap-schema-no-postgis.sql\"",
+    "postinstall": "npm run prisma:generate"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  }
+}

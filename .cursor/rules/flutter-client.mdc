@@ -1,0 +1,16 @@
+---
+description: Flutter mobile client conventions for FitTrack Pro
+globs: strava_alternative_app/**/*.dart
+alwaysApply: false
+---
+
+# Flutter Client Conventions
+
+See [MASTER_BLUEPRINT.md](../../MASTER_BLUEPRINT.md) § Flutter Mobile Client.
+
+- State: Riverpod providers in `lib/core/di.dart`
+- HTTP: Dio with JWT interceptor; base URL from `AppConstants.baseUrl` (dev gateway :8080)
+- Offline: Hive for GPS waypoints; sync via `SyncService` on activity save
+- Background GPS: `flutter_background_service` + `geolocator` stream → Hive
+- Maps: `flutter_map` + OpenStreetMap tiles; render routes from GeoJSON
+- Navigation: GoRouter with auth guard

@@ -1,0 +1,172 @@
+// ─── Prisma Config ────────────────────────────────────────────────────────────
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+// ─── User ─────────────────────────────────────────────────────────────────────
+model User {
+  id                Int             @id @default(autoincrement())
+  username          String          @unique @db.VarChar(50)
+  email             String          @unique @db.VarChar(100)
+  passwordHash      String          @map("password_hash") @db.VarChar(255)
+  bio               String?         @db.Text
+  profilePictureUrl String?         @map("profile_picture_url") @db.VarChar(255)
+  isVerified        Boolean         @default(false) @map("is_verified")
+  refreshToken      String?         @map("refresh_token") @db.Text
+
+  activities        Activity[]
+  segmentEfforts    SegmentEffort[]
+  kudosGiven        Kudo[]
+  comments          Comment[]
+  followers         Follow[]        @relation("Following")
+  following         Follow[]        @relation("Follower")
+
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @default(now()) @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+// ─── Follow System ────────────────────────────────────────────────────────────
+model Follow {
+  id          Int      @id @default(autoincrement())
+  followerId  Int      @map("follower_id")
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId Int      @map("following_id")
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+// ─── Activity ─────────────────────────────────────────────────────────────────
+model Activity {
+  id                  Int      @id @default(autoincrement())
+  userId              Int      @map("user_id")
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title               String   @db.VarChar(100)
+  description         String?  @db.Text
+  activityType        String   @default("run") @map("activity_type") @db.VarChar(20)
+  distanceMeters      Float    @default(0.0) @map("distance_meters")
+  durationSeconds     Int      @default(0) @map("duration_seconds")
+  elapsedTimeSeconds  Int      @default(0) @map("elapsed_time_seconds")
+  elevationGainMeters Float    @default(0.0) @map("elevation_gain_meters")
+  maxHeartRate        Int?     @map("max_heart_rate")
+  averageHeartRate    Int?     @map("average_heart_rate")
+  caloriesBurned      Int?     @map("calories_burned")
+  averagePaceSecPerKm Float?   @map("average_pace_sec_per_km")
+  isPublic            Boolean  @default(true) @map("is_public")
+  startTime           DateTime @map("start_time")
+
+  route               Unsupported("geography(LineString, 4326)")?
+
+  waypoints           ActivityWaypoint[]
+  segmentEfforts      SegmentEffort[]
+  kudos               Kudo[]
+  comments            Comment[]
+
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@map("activities")
+}
+
+// ─── Activity Waypoints ───────────────────────────────────────────────────────
+model ActivityWaypoint {
+  id              BigInt   @id @default(autoincrement())
+  activityId      Int      @map("activity_id")
+  activity        Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  timeStamp       DateTime @map("time_stamp")
+  elevationMeters Float?   @map("elevation_meters")
+  heartRate       Int?     @map("heart_rate")
+  speedMps        Float?   @map("speed_mps")
+  cadence         Int?
+  accuracy        Float?
+
+  location        Unsupported("geography(Point, 4326)")
+
+  @@index([activityId])
+  @@map("activity_waypoints")
+}
+
+// ─── Segment ──────────────────────────────────────────────────────────────────
+model Segment {
+  id             Int    @id @default(autoincrement())
+  name           String @db.VarChar(100)
+  distanceMeters Float  @map("distance_meters")
+  createdById    Int    @map("created_by_id")
+
+  startPoint     Unsupported("geography(Point, 4326)")    @map("start_point")
+  endPoint       Unsupported("geography(Point, 4326)")    @map("end_point")
+  segmentRoute   Unsupported("geography(LineString, 4326)") @map("segment_route")
+
+  efforts        SegmentEffort[]
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("segments")
+}
+
+// ─── Segment Effort ───────────────────────────────────────────────────────────
+model SegmentEffort {
+  id                 BigInt   @id @default(autoincrement())
+  userId             Int      @map("user_id")
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityId         Int      @map("activity_id")
+  activity           Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  segmentId          Int      @map("segment_id")
+  segment            Segment  @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  elapsedTimeSeconds Int      @map("elapsed_time_seconds")
+  averageHeartRate   Int?     @map("average_heart_rate")
+  rank               Int?
+  isKom              Boolean  @default(false) @map("is_kom")
+  startTime          DateTime @map("start_time")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@map("segment_efforts")
+}
+
+// ─── Social: Kudos ────────────────────────────────────────────────────────────
+model Kudo {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityId Int      @map("activity_id")
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, activityId])
+  @@map("kudos")
+}
+
+// ─── Social: Comments ─────────────────────────────────────────────────────────
+model Comment {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityId  Int      @map("activity_id")
+  activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  commentText String   @map("comment_text") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("comments")
+}
+
+// ─── Personal Records ─────────────────────────────────────────────────────────
+model PersonalRecord {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  activityId     Int      @map("activity_id")
+  recordType     String   @map("record_type") @db.VarChar(50)
+  value          Float
+  achievedAt     DateTime @map("achieved_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, recordType])
+  @@map("personal_records")
+}

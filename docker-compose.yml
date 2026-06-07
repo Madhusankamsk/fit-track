@@ -1,0 +1,106 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: fittrack_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fittrack
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-strongpassword}
+      POSTGRES_DB: fittrack_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fittrack -d fittrack_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: fittrack_redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nginx:
+    image: nginx:alpine
+    container_name: fittrack_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - auth-user-service
+      - activity-ingestion-api
+      - analytics-service
+
+  auth-user-service:
+    build:
+      context: .
+      dockerfile: auth-user-service/Dockerfile
+    container_name: fittrack_auth
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "npx prisma migrate deploy --schema=./prisma/schema.prisma && node server.js"
+
+  activity-ingestion-api:
+    build:
+      context: .
+      dockerfile: activity-ingestion-api/Dockerfile
+    container_name: fittrack_ingestion
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  spatial-processing-worker:
+    build:
+      context: .
+      dockerfile: spatial-processing-worker/Dockerfile
+    container_name: fittrack_worker
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: analytics-service/Dockerfile
+    container_name: fittrack_analytics
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:

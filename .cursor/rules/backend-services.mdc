@@ -1,0 +1,16 @@
+---
+description: Backend microservice conventions for FitTrack Pro
+globs: "{auth-user-service,activity-ingestion-api,analytics-service,spatial-processing-worker,dev-gateway}/**/*"
+alwaysApply: false
+---
+
+# Backend Service Conventions
+
+See [MASTER_BLUEPRINT.md](../../MASTER_BLUEPRINT.md) for full implementations.
+
+- ESM modules (`"type": "module"`), Fastify 4.x, Pino logger
+- Shared Prisma schema at repo root `prisma/schema.prisma`
+- JWT via `@fastify/jwt`; auth middleware in `middleware/authenticate.js`
+- Validate request bodies with Zod before processing
+- Rate limiting via `@fastify/rate-limit`
+- Split routes into `routes/*.routes.js`, keep `server.js` as bootstrap only

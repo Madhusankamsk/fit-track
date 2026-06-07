@@ -1,0 +1,104 @@
+# ── Environment & secrets ───────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ── Local dev tools (Redis/PostGIS installers, etc.) ────────────────────────
+.tools/
+
+# ── Node.js (root + all microservices) ──────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+.nyc_output/
+*.lcov
+.vitest/
+
+# ── Prisma ──────────────────────────────────────────────────────────────────
+prisma/*.db
+prisma/*.db-journal
+
+# ── Flutter / Dart (strava_alternative_app) ─────────────────────────────────
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+.pub-cache/
+.pub/
+**/build/
+**/doc/api/
+app.*.symbols
+app.*.map.json
+
+# Platform build outputs
+**/android/.gradle/
+**/android/local.properties
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/android/captures/
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/ephemeral/
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/**/xcuserdata/
+**/macos/Flutter/ephemeral/
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+
+# Commit pubspec.lock for reproducible Flutter builds (do not ignore)
+
+# ── Docker / runtime data ─────────────────────────────────────────────────────
+docker-data/
+
+# ── Databases & caches ──────────────────────────────────────────────────────
+*.sqlite
+*.sqlite3
+.cache/
+
+# ── Logs ────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── TLS material (keep directory, ignore keys) ──────────────────────────────
+nginx/ssl/*.pem
+nginx/ssl/*.key
+nginx/ssl/*.crt
+
+# ── IDE & editors ───────────────────────────────────────────────────────────
+.idea/
+*.iml
+*.ipr
+*.iws
+.fleet/
+*.sublime-project
+*.sublime-workspace
+.vscode/
+
+# Cursor: ignore local IDE state, keep shared project rules
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
+
+# ── OS junk ─────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Misc temp / script artifacts ────────────────────────────────────────────
+*.tmp
+*.temp
+scripts/.seed-hash.txt
