@@ -10,7 +10,11 @@ import { usersRoutes } from './routes/users.routes.js';
 const prisma = new PrismaClient();
 const app = Fastify({ logger: true });
 
-await app.register(fastifyCors, { origin: '*' });
+await app.register(fastifyCors, {
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+});
 await app.register(fastifyJwt, { secret: process.env.JWT_SECRET || 'dev-secret-change-me' });
 await app.register(fastifyRateLimit, {
   max: 100,
