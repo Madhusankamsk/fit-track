@@ -2080,3 +2080,74 @@ flutter run
 ---
 
 *Document version: 1.0 — Generated for FitTrack Pro production development*
+
+
+
+
+Mobile / web app (what you can use in the UI)
+Authentication
+Register and login with email/password
+JWT stored in secure storage; auto token refresh on 401
+Logout from Profile
+Feed (home tab)
+Activity feed from you and people you follow
+Pull-to-refresh
+Activity cards: title, user, distance, duration, elevation
+Map preview of route (OpenStreetMap) when route data exists
+Give kudos (like) on activities
+Comment count shown (posting comments is not wired in the UI)
+Track (GPS tab)
+Live GPS tracking on Android/iOS only (background service + map)
+Start/stop timer, speed display
+Save activity screen: title, activity type (run, ride, swim, walk, hike, workout)
+Offline-first sync: waypoints stored in Hive, uploaded via /api/v1/ingest
+On web/desktop: tracking is disabled (shows a message instead)
+Profile
+Personal stats: total distance, activities, elevation, longest run
+Personal records list (when present)
+Logout
+Segments
+List segments
+Segment leaderboard (rank, username, best time, attempts)
+Backend API (implemented, not all exposed in the app)
+Feature	API	In Flutter UI?
+User profile by ID
+GET /api/v1/users/:id
+No
+Edit profile (bio, username)
+PUT /api/v1/users/me
+No
+Follow / unfollow
+POST/DELETE /api/v1/users/:id/follow
+No
+Activity detail
+GET /api/v1/activities/:id
+No
+Delete activity
+DELETE /api/v1/activities/:id
+No
+Post comment
+POST /api/v1/activities/:id/comments
+No (count only)
+Create segment
+POST /api/v1/segments
+No
+Token refresh
+POST /api/v1/auth/refresh
+Yes (automatic)
+Backend pipeline (behind the scenes)
+Auth service — users, bcrypt passwords, JWT
+Ingestion API — accepts activities → Redis queue (202 response)
+Spatial worker — processes GPS: PostGIS route, waypoints, distance, pace, personal records
+Analytics service — stats, segments, kudos, comments, leaderboards (Redis cache)
+Dev gateway — single entry point on port 8081
+Infrastructure (repo includes, not fully local without setup)
+Docker Compose (Postgres+PostGIS, Redis, nginx, all services)
+Prometheus/Grafana config under monitoring/
+Dev scripts: start-all, seed, DB bootstrap
+Current limitations (from your dev setup)
+PostGIS not installed locally → full spatial schema, route maps, ingest processing, and segment creation are limited or empty
+Feed/segments work but may show no data until activities exist and PostGIS is set up
+Web app works for auth, feed, profile, segments; GPS tracking needs a phone/emulator
+No UI yet for: comments, follows, profile editing, creating segments, activity detail page
+In short: it’s a working Strava-style skeleton with auth, feed, kudos, GPS tracking (mobile), activity upload, stats, and segment leaderboards. Social features (comments, follow, profile edit) and full map/spatial features are mostly API-ready but not fully built in the UI or blocked until PostGIS is installed.

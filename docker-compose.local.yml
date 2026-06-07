@@ -1,0 +1,41 @@
+# Local Docker trial overrides — avoids port clashes with native dev services.
+# Usage: npm run docker:up
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql://fittrack:${DB_PASSWORD:-strongpassword}@postgres:5432/fittrack_db?schema=public
+  REDIS_URL: redis://redis:6379
+  NODE_ENV: production
+
+services:
+  postgres:
+    ports:
+      - "5433:5432"
+
+  redis:
+    ports:
+      - "6380:6379"
+
+  nginx:
+    ports:
+      - "8080:80"
+    # SSL mount optional for local HTTP-only trial
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+
+  auth-user-service:
+    environment:
+      <<: *app-env
+    command: >
+      sh -c "npx prisma migrate deploy --schema=./prisma/schema.prisma && node server.js"
+
+  activity-ingestion-api:
+    environment:
+      <<: *app-env
+
+  spatial-processing-worker:
+    environment:
+      <<: *app-env
+
+  analytics-service:
+    environment:
+      <<: *app-env

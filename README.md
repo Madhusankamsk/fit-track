@@ -36,6 +36,17 @@ cd strava_alternative_app && flutter pub get && flutter run
 
 See [docs/getting-started.md](docs/getting-started.md) for detailed instructions.
 
+### Docker (local trial / server deploy)
+
+```powershell
+# Ensure Docker Desktop is running, then:
+npm run docker:up      # API at http://localhost:8080
+npm run docker:logs    # follow logs
+npm run docker:down    # stop stack
+```
+
+Uses `docker-compose.yml` + `docker-compose.local.yml` (PostGIS on :5433, Redis on :6380, Nginx on :8080).
+
 ## Architecture
 
 ```

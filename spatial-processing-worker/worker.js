@@ -22,6 +22,11 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
+function toActivityId(row) {
+  const id = row?.id;
+  return typeof id === 'bigint' ? Number(id) : id;
+}
+
 async function processJob(payload) {
   const { userId, title, activityType, startTime, durationSeconds, coordinates } = payload;
 
@@ -30,7 +35,7 @@ async function processJob(payload) {
   const { maxHeartRate, averageHeartRate } = extractHeartRateStats(coordinates);
 
   await prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`
+    const inserted = await tx.$queryRaw`
       INSERT INTO activities (
         user_id, title, activity_type, start_time, duration_seconds, elapsed_time_seconds,
         elevation_gain_meters, max_heart_rate, average_heart_rate, route, created_at
@@ -42,16 +47,13 @@ async function processJob(payload) {
         ST_GeogFromText(${lineStringWKT}),
         NOW()
       )
+      RETURNING id
     `;
 
-    const [newActivity] = await tx.$queryRaw`
-      SELECT id FROM activities
-      WHERE user_id = ${userId}
-      ORDER BY created_at DESC
-      LIMIT 1
-    `;
-
-    const activityId = newActivity.id;
+    const activityId = toActivityId(inserted[0]);
+    if (!activityId) {
+      throw new Error('Activity insert did not return an id');
+    }
 
     await insertWaypoints(tx, activityId, coordinates);
 
@@ -61,7 +63,8 @@ async function processJob(payload) {
       WHERE id = ${activityId}
     `;
 
-    const distanceMeters = distResult?.distance_meters ?? 0;
+    const rawDistance = distResult?.distance_meters ?? 0;
+    const distanceMeters = typeof rawDistance === 'bigint' ? Number(rawDistance) : rawDistance;
     const avgPace = calculateAvgPace(durationSeconds, distanceMeters);
 
     await tx.$executeRaw`

@@ -9,6 +9,13 @@ bool get isMobileTrackingSupported =>
     (defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS);
 
+Future<Box<Map>> openTrackingBox() async {
+  if (Hive.isBoxOpen(AppConstants.trackingBox)) {
+    return Hive.box<Map>(AppConstants.trackingBox);
+  }
+  return Hive.openBox<Map>(AppConstants.trackingBox);
+}
+
 Future<void> initializeBackgroundService() async {
   if (!isMobileTrackingSupported) return;
 
@@ -42,11 +49,13 @@ Future<bool> onIosBackground(ServiceInstance service) async {
 void onStart(ServiceInstance service) async {
   await Hive.initFlutter();
 
-  final box = await Hive.openBox<Map>(AppConstants.trackingBox);
+  final box = await openTrackingBox();
   int waypointCount = 0;
 
   service.on('stopService').listen((event) async {
-    await box.close();
+    if (Hive.isBoxOpen(AppConstants.trackingBox)) {
+      await Hive.box<Map>(AppConstants.trackingBox).close();
+    }
     service.stopSelf();
   });
 

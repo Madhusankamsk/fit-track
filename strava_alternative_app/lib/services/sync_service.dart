@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import '../core/constants.dart';
+import 'tracking_service.dart';
 
 class SyncService {
   final Dio _dio;
@@ -15,7 +14,7 @@ class SyncService {
     required DateTime startTime,
     required int durationSeconds,
   }) async {
-    final box = await Hive.openBox<Map>(AppConstants.trackingBox);
+    final box = await openTrackingBox();
 
     if (box.isEmpty) {
       return SyncResult.failure('No GPS data recorded');

@@ -60,16 +60,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
   }
 
   Future<void> _startTracking() async {
-    if (!isMobileTrackingSupported) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('GPS tracking is only available on Android and iOS.'),
-          ),
-        );
-      }
-      return;
-    }
+    if (!isMobileTrackingSupported) return;
     await _requestPermissions();
     _listenToGpsUpdates();
     await _service!.startService();
@@ -84,10 +75,12 @@ class _TrackingScreenState extends State<TrackingScreen> {
     _service?.invoke('stopService');
     _timer?.cancel();
     setState(() => _isTracking = false);
-    if (mounted) context.push('/save-activity', extra: {
+    if (mounted) {
+      context.push('/save-activity', extra: {
       'startTime': _startTime,
       'durationSeconds': _elapsedSeconds,
     });
+    }
   }
 
   String get _formattedTime {
@@ -97,8 +90,41 @@ class _TrackingScreenState extends State<TrackingScreen> {
     return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
+  Widget _buildMobileFallback() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.gps_off, size: 72, color: Colors.orange),
+            SizedBox(height: 24),
+            Text(
+              'GPS Tracking is only available on Mobile Devices.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Use the FitTrack Pro app on Android or iOS to record activities with live GPS.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (!isMobileTrackingSupported) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Track')),
+        body: _buildMobileFallback(),
+      );
+    }
+
     return Scaffold(
       body: Stack(
         children: [

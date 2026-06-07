@@ -1,7 +1,7 @@
 FROM node:20-alpine
 WORKDIR /app
 COPY activity-ingestion-api/package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 COPY prisma ./prisma
 RUN npx prisma generate --schema=./prisma/schema.prisma
 COPY activity-ingestion-api/ ./

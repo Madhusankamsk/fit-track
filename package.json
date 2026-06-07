@@ -14,6 +14,9 @@
     "prisma:migrate": "npx prisma migrate dev --schema=prisma/schema.prisma",
     "seed": "node scripts/seed-account.js",
     "db:bootstrap": "powershell -ExecutionPolicy Bypass -Command \"$env:PGPASSWORD=(Get-Content .env | Where-Object { $_ -match '^DB_PASSWORD=' } | ForEach-Object { $_ -replace '^DB_PASSWORD=','' }); if (-not $env:PGPASSWORD) { $env:PGPASSWORD='123' }; & 'C:\\Program Files\\PostgreSQL\\18\\bin\\psql.exe' -U postgres -h localhost -d fittrack_db -v ON_ERROR_STOP=1 -f scripts/bootstrap-schema-no-postgis.sql\"",
+    "docker:up": "powershell -ExecutionPolicy Bypass -File scripts/docker-local.ps1",
+    "docker:down": "powershell -ExecutionPolicy Bypass -File scripts/docker-local.ps1 -Down",
+    "docker:logs": "powershell -ExecutionPolicy Bypass -File scripts/docker-local.ps1 -Logs",
     "postinstall": "npm run prisma:generate"
   },
   "devDependencies": {

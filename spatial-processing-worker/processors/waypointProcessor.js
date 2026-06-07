@@ -1,25 +1,30 @@
+import { Prisma } from '@prisma/client';
+
 const CHUNK_SIZE = 1000;
 
 export async function insertWaypoints(tx, activityId, coordinates) {
   for (let i = 0; i < coordinates.length; i += CHUNK_SIZE) {
     const chunk = coordinates.slice(i, i + CHUNK_SIZE);
-    for (const coord of chunk) {
+
+    const valueRows = chunk.map((coord) => {
       const pointWkt = `POINT(${coord.longitude} ${coord.latitude})`;
-      await tx.$executeRaw`
-        INSERT INTO activity_waypoints (
-          activity_id, time_stamp, elevation_meters, heart_rate, speed_mps, cadence, accuracy, location
-        ) VALUES (
-          ${activityId},
-          ${new Date(coord.timestamp)}::timestamptz,
-          ${coord.elevation ?? null},
-          ${coord.heartRate ?? null},
-          ${coord.speed ?? null},
-          ${coord.cadence ?? null},
-          ${coord.accuracy ?? null},
-          ST_GeogFromText(${pointWkt})
-        )
-      `;
-    }
+      return Prisma.sql`(
+        ${activityId},
+        ${new Date(coord.timestamp)}::timestamptz,
+        ${coord.elevation ?? null},
+        ${coord.heartRate ?? null},
+        ${coord.speed ?? null},
+        ${coord.cadence ?? null},
+        ${coord.accuracy ?? null},
+        ST_GeogFromText(${pointWkt})
+      )`;
+    });
+
+    await tx.$executeRaw`
+      INSERT INTO activity_waypoints (
+        activity_id, time_stamp, elevation_meters, heart_rate, speed_mps, cadence, accuracy, location
+      ) VALUES ${Prisma.join(valueRows)}
+    `;
   }
 }
 
