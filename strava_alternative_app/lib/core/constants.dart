@@ -1,15 +1,12 @@
-import 'package:flutter/foundation.dart';
-
 class AppConstants {
-  /// Android emulator uses 10.0.2.2 to reach host localhost.
+  /// Deployed Docker API (nginx gateway). Override for local dev:
+  /// `flutter run --dart-define=API_BASE_URL=http://localhost:8080`
+  static const String _deployedApiUrl = 'http://100.115.79.13:8080';
+
   static String get baseUrl {
-    if (kIsWeb ||
-        defaultTargetPlatform == TargetPlatform.windows ||
-        defaultTargetPlatform == TargetPlatform.linux ||
-        defaultTargetPlatform == TargetPlatform.macOS) {
-      return 'http://localhost:8080';
-    }
-    return 'http://10.0.2.2:8080';
+    const fromEnv = String.fromEnvironment('API_BASE_URL');
+    if (fromEnv.isNotEmpty) return fromEnv;
+    return _deployedApiUrl;
   }
 
   static const String activityQueue = 'activity_queue';
