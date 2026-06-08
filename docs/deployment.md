@@ -54,6 +54,33 @@ If the stack fails after a **previous partial deploy**, reset volumes:
 
 First PostGIS boot can take **1–3 minutes** on slow VPS hosts — wait before checking `fittrack_auth` logs.
 
+### Platform mismatch (`exec format error` / `platform linux/arm64 does not match linux/amd64`)
+
+This happens when old images were built for a **different CPU** than the server (e.g. ARM64 images on an AMD64 VPS).
+
+1. Confirm host architecture (SSH):
+   ```bash
+   uname -m
+   ```
+   - `x86_64` → set `DOCKER_PLATFORM=linux/amd64` (default in `docker-compose.yml`)
+   - `aarch64` → set `DOCKER_PLATFORM=linux/arm64` in Portainer env vars
+
+2. **Delete stale images** before redeploying (SSH in stack directory):
+   ```bash
+   docker compose down
+   docker rmi fit-track-auth-user-service fit-track-activity-ingestion-api \
+     fit-track-analytics-service fit-track-spatial-processing-worker \
+     fit-track-nginx 2>/dev/null || true
+   docker image prune -f
+   docker compose build --no-cache
+   docker compose up -d
+   ```
+
+   In **Portainer**: remove the stack, then **Images** → delete any `fit-track-*` images → redeploy the stack.
+
+3. Do **not** skip step 2 — Compose reuses cached ARM images and deploy will fail with:
+   `image ... platform (linux/arm64) does not match the specified platform (linux/amd64)`
+
 ### 502 Bad Gateway on `/api/v1/auth/login`
 
 Nginx is up but **`fittrack_auth` is not listening** (container crashed or still starting).

@@ -1,5 +1,6 @@
 # Pin image architecture (fixes "exec format error" on amd64 Ubuntu VPS).
 # Override in Portainer if the host is ARM: DOCKER_PLATFORM=linux/arm64
+# IMAGE_TAG must change when switching CPU arch (avoids reusing stale arm64 images).
 x-platform: &platform
   platform: ${DOCKER_PLATFORM:-linux/amd64}
 
@@ -57,6 +58,7 @@ services:
 
   nginx:
     <<: *platform
+    image: fittrack/nginx:${IMAGE_TAG:-amd64-v2}
     build:
       context: ./nginx
       dockerfile: Dockerfile
@@ -71,6 +73,7 @@ services:
 
   auth-user-service:
     <<: *platform
+    image: fittrack/auth-user-service:${IMAGE_TAG:-amd64-v2}
     build:
       context: .
       dockerfile: auth-user-service/Dockerfile
@@ -83,6 +86,7 @@ services:
 
   activity-ingestion-api:
     <<: *platform
+    image: fittrack/activity-ingestion-api:${IMAGE_TAG:-amd64-v2}
     build:
       context: .
       dockerfile: activity-ingestion-api/Dockerfile
@@ -96,6 +100,7 @@ services:
 
   spatial-processing-worker:
     <<: *platform
+    image: fittrack/spatial-processing-worker:${IMAGE_TAG:-amd64-v2}
     build:
       context: .
       dockerfile: spatial-processing-worker/Dockerfile
@@ -109,6 +114,7 @@ services:
 
   analytics-service:
     <<: *platform
+    image: fittrack/analytics-service:${IMAGE_TAG:-amd64-v2}
     build:
       context: .
       dockerfile: analytics-service/Dockerfile
