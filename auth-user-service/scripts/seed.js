@@ -34,7 +34,7 @@ try {
   console.log(`  Password: ${SEED.password}`);
   console.log(`  User ID:  ${user.id}`);
 } catch (err) {
-  console.error('Seed failed:', err);
+  console.error('Seed failed:', err.message || err);
   process.exit(1);
 } finally {
   await prisma.$disconnect();

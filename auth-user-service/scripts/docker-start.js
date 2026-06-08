@@ -15,7 +15,12 @@ run('Running migrations', 'npx', [
   'deploy',
   '--schema=./prisma/schema.prisma',
 ]);
-run('Running seed', 'node', ['scripts/seed.js']);
+
+console.log('=== [auth] Running seed (non-fatal) ===');
+const seed = spawnSync('node', ['scripts/seed.js'], { stdio: 'inherit', shell: false });
+if (seed.status !== 0) {
+  console.warn('=== [auth] Seed failed — continuing to start server ===');
+}
 
 const port = process.env.AUTH_SERVICE_PORT || '5001';
 console.log(`=== [auth] Starting server on port ${port} ===`);
