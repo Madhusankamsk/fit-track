@@ -1,131 +1,129 @@
-# Pin image architecture (fixes "exec format error" on amd64 Ubuntu VPS).
-# Override in Portainer if the host is ARM: DOCKER_PLATFORM=linux/arm64
-# IMAGE_TAG must change when switching CPU arch (avoids reusing stale arm64 images).
-x-platform: &platform
-  platform: ${DOCKER_PLATFORM:-linux/amd64}
-
-x-app-env: &app-env
-  DATABASE_URL: postgresql://fittrack:${DB_PASSWORD:-strongpassword}@postgres:5432/fittrack_db?schema=public
-  REDIS_URL: redis://redis:6379
-  JWT_SECRET: ${JWT_SECRET:-replace_with_256bit_random_secret_never_expose}
-  JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-replace_with_different_256bit_secret}
-  JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
-  JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
-  AUTH_SERVICE_PORT: ${AUTH_SERVICE_PORT:-5001}
-  INGESTION_API_PORT: ${INGESTION_API_PORT:-5002}
-  ANALYTICS_SERVICE_PORT: ${ANALYTICS_SERVICE_PORT:-5003}
-  NODE_ENV: ${NODE_ENV:-production}
-  BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
-  MAX_WAYPOINTS_PER_ACTIVITY: ${MAX_WAYPOINTS_PER_ACTIVITY:-100000}
-  ACTIVITY_QUEUE_NAME: ${ACTIVITY_QUEUE_NAME:-activity_queue}
-  SEED_ON_STARTUP: ${SEED_ON_STARTUP:-true}
-  SEED_USERNAME: ${SEED_USERNAME:-runner1}
-  SEED_EMAIL: ${SEED_EMAIL:-runner1@test.com}
-  SEED_PASSWORD: ${SEED_PASSWORD:-Securepass1!}
-
-services:
-  postgres:
-    <<: *platform
-    image: postgis/postgis:16-3.4
-    container_name: fittrack_postgres
-    restart: unless-stopped
-    shm_size: 256mb
-    environment:
-      POSTGRES_USER: fittrack
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-strongpassword}
-      POSTGRES_DB: fittrack_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "${POSTGRES_HOST_PORT:-5433}:5432"
-
-  redis:
-    <<: *platform
-    image: redis:7-alpine
-    container_name: fittrack_redis
-    restart: unless-stopped
-    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
-    volumes:
-      - redis_data:/data
-    ports:
-      - "${REDIS_HOST_PORT:-6380}:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-
-  nginx:
-    <<: *platform
-    image: fittrack/nginx:${IMAGE_TAG:-amd64-v2}
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
-    container_name: fittrack_nginx
-    restart: unless-stopped
-    ports:
-      - "${NGINX_HTTP_PORT:-8080}:80"
-    depends_on:
-      - auth-user-service
-      - activity-ingestion-api
-      - analytics-service
-
-  auth-user-service:
-    <<: *platform
-    image: fittrack/auth-user-service:${IMAGE_TAG:-amd64-v2}
-    build:
-      context: .
-      dockerfile: auth-user-service/Dockerfile
-    container_name: fittrack_auth
-    restart: unless-stopped
-    environment:
-      <<: *app-env
-    depends_on:
-      - postgres
-
-  activity-ingestion-api:
-    <<: *platform
-    image: fittrack/activity-ingestion-api:${IMAGE_TAG:-amd64-v2}
-    build:
-      context: .
-      dockerfile: activity-ingestion-api/Dockerfile
-    container_name: fittrack_ingestion
-    restart: unless-stopped
-    environment:
-      <<: *app-env
-    depends_on:
-      - postgres
-      - redis
-
-  spatial-processing-worker:
-    <<: *platform
-    image: fittrack/spatial-processing-worker:${IMAGE_TAG:-amd64-v2}
-    build:
-      context: .
-      dockerfile: spatial-processing-worker/Dockerfile
-    container_name: fittrack_worker
-    restart: unless-stopped
-    environment:
-      <<: *app-env
-    depends_on:
-      - postgres
-      - redis
-
-  analytics-service:
-    <<: *platform
-    image: fittrack/analytics-service:${IMAGE_TAG:-amd64-v2}
-    build:
-      context: .
-      dockerfile: analytics-service/Dockerfile
-    container_name: fittrack_analytics
-    restart: unless-stopped
-    environment:
-      <<: *app-env
-    depends_on:
-      - postgres
-      - redis
-
-volumes:
-  postgres_data:
-  redis_data:
+# FitTrack Pro — production Docker Compose
+# Images build for the host CPU automatically (no forced platform).
+# Run on server first: uname -m  →  x86_64 or aarch64
+# After arch changes or "platform does not match" errors, run: ./scripts/portainer-redeploy.sh
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql://fittrack:${DB_PASSWORD:-strongpassword}@postgres:5432/fittrack_db?schema=public
+  REDIS_URL: redis://redis:6379
+  JWT_SECRET: ${JWT_SECRET:-replace_with_256bit_random_secret_never_expose}
+  JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-replace_with_different_256bit_secret}
+  JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+  JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
+  AUTH_SERVICE_PORT: ${AUTH_SERVICE_PORT:-5001}
+  INGESTION_API_PORT: ${INGESTION_API_PORT:-5002}
+  ANALYTICS_SERVICE_PORT: ${ANALYTICS_SERVICE_PORT:-5003}
+  NODE_ENV: ${NODE_ENV:-production}
+  BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+  MAX_WAYPOINTS_PER_ACTIVITY: ${MAX_WAYPOINTS_PER_ACTIVITY:-100000}
+  ACTIVITY_QUEUE_NAME: ${ACTIVITY_QUEUE_NAME:-activity_queue}
+  SEED_ON_STARTUP: ${SEED_ON_STARTUP:-true}
+  SEED_USERNAME: ${SEED_USERNAME:-runner1}
+  SEED_EMAIL: ${SEED_EMAIL:-runner1@test.com}
+  SEED_PASSWORD: ${SEED_PASSWORD:-Securepass1!}
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: fittrack_postgres
+    restart: unless-stopped
+    shm_size: 256mb
+    environment:
+      POSTGRES_USER: fittrack
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-strongpassword}
+      POSTGRES_DB: fittrack_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: fittrack_redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_HOST_PORT:-6380}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  nginx:
+    image: fittrack/nginx:${IMAGE_TAG:-v3}
+    pull_policy: build
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: fittrack_nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT:-8080}:80"
+    depends_on:
+      - auth-user-service
+      - activity-ingestion-api
+      - analytics-service
+
+  auth-user-service:
+    image: fittrack/auth-user-service:${IMAGE_TAG:-v3}
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: auth-user-service/Dockerfile
+    container_name: fittrack_auth
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+    depends_on:
+      - postgres
+
+  activity-ingestion-api:
+    image: fittrack/activity-ingestion-api:${IMAGE_TAG:-v3}
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: activity-ingestion-api/Dockerfile
+    container_name: fittrack_ingestion
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+    depends_on:
+      - postgres
+      - redis
+
+  spatial-processing-worker:
+    image: fittrack/spatial-processing-worker:${IMAGE_TAG:-v3}
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: spatial-processing-worker/Dockerfile
+    container_name: fittrack_worker
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+    depends_on:
+      - postgres
+      - redis
+
+  analytics-service:
+    image: fittrack/analytics-service:${IMAGE_TAG:-v3}
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: analytics-service/Dockerfile
+    container_name: fittrack_analytics
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:
+

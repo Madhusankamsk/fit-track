@@ -54,32 +54,26 @@ If the stack fails after a **previous partial deploy**, reset volumes:
 
 First PostGIS boot can take **1–3 minutes** on slow VPS hosts — wait before checking `fittrack_auth` logs.
 
-### Platform mismatch (`exec format error` / `platform linux/arm64 does not match linux/amd64`)
+### Platform mismatch (`exec format error` / `platform does not match`)
 
-This happens when old images were built for a **different CPU** than the server (e.g. ARM64 images on an AMD64 VPS).
+Caused by **cached images built for a different CPU** than the server, or forcing `linux/amd64` on an **ARM** host (builds produce `arm64`).
 
-1. Confirm host architecture (SSH):
+1. Check host architecture (SSH):
    ```bash
    uname -m
    ```
-   - `x86_64` → set `DOCKER_PLATFORM=linux/amd64` (default in `docker-compose.yml`)
-   - `aarch64` → set `DOCKER_PLATFORM=linux/arm64` in Portainer env vars
+   - `x86_64` — Intel/AMD VPS
+   - `aarch64` — ARM VPS (Oracle Ampere, Raspberry Pi, etc.)
 
-2. **Delete stale images** before redeploying (SSH in stack directory):
+2. **Remove `DOCKER_PLATFORM` from Portainer** — `docker-compose.yml` builds for the host CPU automatically.
+
+3. **Clean redeploy** (SSH in repo root):
    ```bash
-   docker compose down
-   docker rmi fit-track-auth-user-service fit-track-activity-ingestion-api \
-     fit-track-analytics-service fit-track-spatial-processing-worker \
-     fit-track-nginx 2>/dev/null || true
-   docker image prune -f
-   docker compose build --no-cache
-   docker compose up -d
+   chmod +x scripts/portainer-redeploy.sh
+   ./scripts/portainer-redeploy.sh
    ```
 
-   In **Portainer**: remove the stack, then **Images** → delete any `fit-track-*` images → redeploy the stack.
-
-3. Do **not** skip step 2 — Compose reuses cached ARM images and deploy will fail with:
-   `image ... platform (linux/arm64) does not match the specified platform (linux/amd64)`
+   Or manually: stop stack → delete all `fit-track-*` and `fittrack/*` images in Portainer → redeploy with `IMAGE_TAG=v3`.
 
 ### 502 Bad Gateway on `/api/v1/auth/login`
 
