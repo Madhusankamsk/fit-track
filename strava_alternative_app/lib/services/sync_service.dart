@@ -20,11 +20,17 @@ class SyncService {
       return SyncResult.failure('No GPS data recorded');
     }
 
-    final coordinates = box.values
-        .map((w) => Map<String, dynamic>.from(w))
-        .toList();
+    final coordinates = sanitizeCoordinatesForIngest(box.values);
+    if (coordinates.length < 2) {
+      return SyncResult.failure(
+        'Not enough GPS points. Walk a few meters, record again, then sync.',
+      );
+    }
 
     final token = await _storage.read(key: 'auth_token');
+    if (token == null || token.isEmpty) {
+      return SyncResult.failure('Not logged in. Please sign in and try again.');
+    }
 
     try {
       final response = await _dio.post(
@@ -37,7 +43,7 @@ class SyncService {
         data: {
           'title': title,
           'activityType': activityType,
-          'startTime': startTime.toIso8601String(),
+          'startTime': startTime.toUtc().toIso8601String(),
           'durationSeconds': durationSeconds,
           'coordinates': coordinates,
         },
@@ -49,8 +55,21 @@ class SyncService {
       }
       return SyncResult.failure('Unexpected response: ${response.statusCode}');
     } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 400) {
+        return SyncResult.failure(
+          'Invalid activity data (400). Record a new activity and try again. Data kept locally.',
+        );
+      }
+      if (status == 401) {
+        return SyncResult.failure('Session expired. Log in again.');
+      }
       return SyncResult.failure(
-        'Sync failed: ${e.message}. Data kept locally.',
+        'Sync failed (${status ?? 'network error'}). Data kept locally.',
+      );
+    } on FormatException catch (e) {
+      return SyncResult.failure(
+        'GPS data format error: ${e.message}. Record again.',
       );
     }
   }

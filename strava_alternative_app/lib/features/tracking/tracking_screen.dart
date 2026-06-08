@@ -70,7 +70,17 @@ class _TrackingScreenState extends State<TrackingScreen> {
     final box = await openTrackingBox();
     await box.clear();
 
-    const settings = AndroidSettings(
+    try {
+      final current = await Geolocator.getCurrentPosition();
+      final point = LatLng(current.latitude, current.longitude);
+      await box.add(waypointFromPosition(current));
+      if (mounted) {
+        setState(() => _routePoints.add(point));
+        _mapController.move(point, 16.0);
+      }
+    } catch (_) {}
+
+    final settings = AndroidSettings(
       accuracy: LocationAccuracy.bestForNavigation,
       distanceFilter: AppConstants.gpsDistanceFilter.toInt(),
       foregroundNotificationConfig: ForegroundNotificationConfig(
@@ -83,14 +93,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
     _positionSub = Geolocator.getPositionStream(locationSettings: settings).listen(
       (position) async {
-        await box.add({
-          'latitude': position.latitude,
-          'longitude': position.longitude,
-          'timestamp': position.timestamp.toIso8601String(),
-          'elevation': position.altitude,
-          'speed': position.speed,
-          'accuracy': position.accuracy,
-        });
+        await box.add(waypointFromPosition(position));
 
         final point = LatLng(position.latitude, position.longitude);
         if (!mounted) return;
@@ -127,9 +130,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
     } else {
       await _positionSub?.cancel();
       _positionSub = null;
-      if (Hive.isBoxOpen(AppConstants.trackingBox)) {
-        await Hive.box<Map>(AppConstants.trackingBox).close();
-      }
     }
 
     _timer?.cancel();

@@ -13,6 +13,68 @@ bool get isMobileTrackingSupported =>
 bool get usesBackgroundTrackingService =>
     !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
+Map<String, dynamic> waypointFromPosition(Position position) {
+  final waypoint = <String, dynamic>{
+    'latitude': position.latitude,
+    'longitude': position.longitude,
+    'timestamp': position.timestamp.toUtc().toIso8601String(),
+    'elevation': position.altitude,
+  };
+  if (position.speed >= 0) waypoint['speed'] = position.speed;
+  if (position.accuracy >= 0) waypoint['accuracy'] = position.accuracy;
+  return waypoint;
+}
+
+double _readDouble(dynamic value) {
+  if (value is num) return value.toDouble();
+  if (value is String) return double.parse(value);
+  throw FormatException('Invalid coordinate number: $value');
+}
+
+String _readTimestamp(dynamic value) {
+  if (value is String) {
+    return DateTime.parse(value).toUtc().toIso8601String();
+  }
+  if (value is DateTime) return value.toUtc().toIso8601String();
+  throw FormatException('Invalid timestamp: $value');
+}
+
+List<Map<String, dynamic>> sanitizeCoordinatesForIngest(
+  Iterable<dynamic> rawWaypoints,
+) {
+  final coords = rawWaypoints.map((w) {
+    final m = Map<String, dynamic>.from(w as Map);
+    final coord = <String, dynamic>{
+      'latitude': _readDouble(m['latitude']),
+      'longitude': _readDouble(m['longitude']),
+      'timestamp': _readTimestamp(m['timestamp']),
+    };
+    final elevation = m['elevation'] as num?;
+    if (elevation != null && elevation.isFinite) {
+      coord['elevation'] = elevation.toDouble();
+    }
+    final speed = m['speed'] as num?;
+    if (speed != null && speed >= 0) coord['speed'] = speed.toDouble();
+    final accuracy = m['accuracy'] as num?;
+    if (accuracy != null && accuracy >= 0) {
+      coord['accuracy'] = accuracy.toDouble();
+    }
+    return coord;
+  }).toList();
+
+  // API requires at least 2 points for a route LineString.
+  if (coords.length == 1) {
+    final only = coords.first;
+    final ts = DateTime.parse(only['timestamp'] as String);
+    coords.add({
+      ...only,
+      'timestamp': ts.add(const Duration(seconds: 1)).toUtc().toIso8601String(),
+    });
+  }
+
+  return coords;
+}
+
 Future<Box<Map>> openTrackingBox() async {
   if (Hive.isBoxOpen(AppConstants.trackingBox)) {
     return Hive.box<Map>(AppConstants.trackingBox);
@@ -85,14 +147,7 @@ void onStart(ServiceInstance service) async {
   );
 
   positionStream.listen((Position position) async {
-    final waypoint = {
-      'latitude': position.latitude,
-      'longitude': position.longitude,
-      'timestamp': position.timestamp.toIso8601String(),
-      'elevation': position.altitude,
-      'speed': position.speed,
-      'accuracy': position.accuracy,
-    };
+    final waypoint = waypointFromPosition(position);
 
     await box.add(waypoint);
     waypointCount++;
