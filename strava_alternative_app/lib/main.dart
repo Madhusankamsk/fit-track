@@ -8,7 +8,7 @@ import 'services/tracking_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  await initializeBackgroundService();
+  await prepareMobileTracking();
   runApp(const ProviderScope(child: FitTrackBootstrap()));
 }
 

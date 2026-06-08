@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_background_service_platform_interface/flutter_background_service_platform_interface.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../core/constants.dart';
@@ -9,6 +10,9 @@ bool get isMobileTrackingSupported =>
     (defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS);
 
+bool get usesBackgroundTrackingService =>
+    !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
 Future<Box<Map>> openTrackingBox() async {
   if (Hive.isBoxOpen(AppConstants.trackingBox)) {
     return Hive.box<Map>(AppConstants.trackingBox);
@@ -16,8 +20,22 @@ Future<Box<Map>> openTrackingBox() async {
   return Hive.openBox<Map>(AppConstants.trackingBox);
 }
 
-Future<void> initializeBackgroundService() async {
+Future<void> prepareMobileTracking() async {
   if (!isMobileTrackingSupported) return;
+
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    final service = FlutterBackgroundService();
+    if (await service.isRunning()) {
+      service.invoke('stopService');
+    }
+    return;
+  }
+
+  await initializeBackgroundService();
+}
+
+Future<void> initializeBackgroundService() async {
+  if (!usesBackgroundTrackingService) return;
 
   final service = FlutterBackgroundService();
 
@@ -26,10 +44,10 @@ Future<void> initializeBackgroundService() async {
       onStart: onStart,
       autoStart: false,
       isForegroundMode: true,
-      notificationChannelId: 'fittrack_tracking',
       initialNotificationTitle: 'FitTrack Pro',
       initialNotificationContent: 'Tracking your activity...',
       foregroundServiceNotificationId: 888,
+      foregroundServiceTypes: const [AndroidForegroundType.location],
     ),
     iosConfiguration: IosConfiguration(
       autoStart: false,

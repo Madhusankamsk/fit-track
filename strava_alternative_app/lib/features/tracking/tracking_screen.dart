@@ -2,9 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geolocator_android/geolocator_android.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../core/constants.dart';
 import '../../services/tracking_service.dart';
 
 class TrackingScreen extends StatefulWidget {
@@ -16,6 +20,7 @@ class TrackingScreen extends StatefulWidget {
 
 class _TrackingScreenState extends State<TrackingScreen> {
   FlutterBackgroundService? _service;
+  StreamSubscription<Position>? _positionSub;
   final MapController _mapController = MapController();
   final List<LatLng> _routePoints = [];
 
@@ -28,7 +33,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
   @override
   void initState() {
     super.initState();
-    if (isMobileTrackingSupported) {
+    if (usesBackgroundTrackingService) {
       _service = FlutterBackgroundService();
     }
   }
@@ -36,6 +41,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _positionSub?.cancel();
     super.dispose();
   }
 
@@ -55,15 +61,59 @@ class _TrackingScreenState extends State<TrackingScreen> {
   }
 
   Future<void> _requestPermissions() async {
+    await Permission.notification.request();
     await Permission.location.request();
     await Permission.locationAlways.request();
+  }
+
+  Future<void> _startAndroidTracking() async {
+    final box = await openTrackingBox();
+    await box.clear();
+
+    const settings = AndroidSettings(
+      accuracy: LocationAccuracy.bestForNavigation,
+      distanceFilter: AppConstants.gpsDistanceFilter.toInt(),
+      foregroundNotificationConfig: ForegroundNotificationConfig(
+        notificationTitle: 'FitTrack Pro',
+        notificationText: 'Tracking your activity...',
+        notificationChannelName: 'Activity Tracking',
+        setOngoing: true,
+      ),
+    );
+
+    _positionSub = Geolocator.getPositionStream(locationSettings: settings).listen(
+      (position) async {
+        await box.add({
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+          'timestamp': position.timestamp.toIso8601String(),
+          'elevation': position.altitude,
+          'speed': position.speed,
+          'accuracy': position.accuracy,
+        });
+
+        final point = LatLng(position.latitude, position.longitude);
+        if (!mounted) return;
+        setState(() {
+          _routePoints.add(point);
+          _currentSpeed = position.speed;
+        });
+        _mapController.move(point, 16.0);
+      },
+    );
   }
 
   Future<void> _startTracking() async {
     if (!isMobileTrackingSupported) return;
     await _requestPermissions();
-    _listenToGpsUpdates();
-    await _service!.startService();
+
+    if (usesBackgroundTrackingService) {
+      _listenToGpsUpdates();
+      await _service!.startService();
+    } else {
+      await _startAndroidTracking();
+    }
+
     _startTime = DateTime.now();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() => _elapsedSeconds++);
@@ -72,14 +122,23 @@ class _TrackingScreenState extends State<TrackingScreen> {
   }
 
   Future<void> _stopTracking() async {
-    _service?.invoke('stopService');
+    if (usesBackgroundTrackingService) {
+      _service?.invoke('stopService');
+    } else {
+      await _positionSub?.cancel();
+      _positionSub = null;
+      if (Hive.isBoxOpen(AppConstants.trackingBox)) {
+        await Hive.box<Map>(AppConstants.trackingBox).close();
+      }
+    }
+
     _timer?.cancel();
     setState(() => _isTracking = false);
     if (mounted) {
       context.push('/save-activity', extra: {
-      'startTime': _startTime,
-      'durationSeconds': _elapsedSeconds,
-    });
+        'startTime': _startTime,
+        'durationSeconds': _elapsedSeconds,
+      });
     }
   }
 
